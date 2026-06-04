@@ -1,18 +1,64 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import TaskModal from '../components/TaskModal';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import TaskModal from "../components/TaskModal";
+import api from "../api/axios";
+import toast from "react-hot-toast";
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [teams, setTeams] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const navigate = useNavigate();
+
+  // Component mount hote hi data fetch karega
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Promise.all use kiya taake dono API ek sath hit hon aur speed tez ho
+        const [teamsRes, tasksRes] = await Promise.all([
+          api.get("/teams"),
+          api.get("/tasks"),
+        ]);
+
+        setTeams(teamsRes.data);
+        setTasks(tasksRes.data);
+      } catch (err) {
+        // Agar user authenticated nahi hai toh 401 error aayega
+        if (err.response?.status === 401) {
+          toast.error("Unauthorized access! Please login first.");
+          navigate("/login");
+        } else {
+          toast.error("Failed to load dashboard data");
+        }
+      }
+    };
+
+    fetchDashboardData();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
       <aside className="w-64 bg-white border-r border-gray-200 p-6 hidden md:block">
         <h1 className="text-2xl font-black text-blue-600 mb-10">TaskMaster</h1>
         <nav className="space-y-3">
-          <a href="#" className="block px-4 py-3 bg-blue-50 text-blue-700 rounded-lg font-bold transition-colors">Dashboard</a>
-          <a href="#" className="block px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg font-medium transition-colors">My Teams</a>
-          <a href="#" className="block px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg font-medium transition-colors">All Tasks</a>
+          <a
+            href="#"
+            className="block px-4 py-3 bg-blue-50 text-blue-700 rounded-lg font-bold transition-colors"
+          >
+            Dashboard
+          </a>
+          <a
+            href="#"
+            className="block px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+          >
+            My Teams
+          </a>
+          <a
+            href="#"
+            className="block px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+          >
+            All Tasks
+          </a>
         </nav>
       </aside>
 
@@ -20,13 +66,18 @@ const Dashboard = () => {
         <header className="flex justify-between items-center mb-10">
           <h2 className="text-3xl font-extrabold text-gray-800">Dashboard</h2>
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
               className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md"
             >
               + Create Task
             </button>
-            <Link to="/login" className="bg-red-50 text-red-600 px-5 py-2.5 rounded-lg font-bold hover:bg-red-100 transition-colors">Logout</Link>
+            <Link
+              to="/login"
+              className="bg-red-50 text-red-600 px-5 py-2.5 rounded-lg font-bold hover:bg-red-100 transition-colors"
+            >
+              Logout
+            </Link>
           </div>
         </header>
 
@@ -34,29 +85,73 @@ const Dashboard = () => {
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">Your Teams</h3>
-              <button className="text-blue-600 text-sm font-bold hover:underline">+ New Team</button>
+              <button className="text-blue-600 text-sm font-bold hover:underline">
+                + New Team
+              </button>
             </div>
             <div className="space-y-3">
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <h4 className="font-bold text-gray-700">Frontend Devs</h4>
-                <p className="text-xs text-gray-500 mt-1">3 members</p>
-              </div>
+              {/* Dynamic Teams Fetching */}
+              {teams.length === 0 ? (
+                <p className="text-sm text-gray-500 italic p-2 text-center">
+                  No teams yet. Create one!
+                </p>
+              ) : (
+                teams.map((team) => (
+                  <div
+                    key={team.id}
+                    className="p-4 bg-gray-50 rounded-xl border border-gray-100"
+                  >
+                    <h4 className="font-bold text-gray-700">{team.name}</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Created: {new Date(team.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-          
+
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">Recent Tasks</h3>
-              <input type="text" placeholder="Search tasks..." className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none" />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none"
+              />
             </div>
             <div className="space-y-4">
-              <div className="p-4 border border-gray-100 rounded-xl flex justify-between items-center hover:shadow-md transition-shadow">
-                <div>
-                  <h4 className="font-bold text-gray-800">Setup UI Architecture</h4>
-                  <p className="text-sm text-gray-500 mt-1">Assigned to: Usama • Team: Frontend Devs</p>
-                </div>
-                <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full">In Progress</span>
-              </div>
+              {/* Dynamic Tasks Fetching */}
+              {tasks.length === 0 ? (
+                <p className="text-sm text-gray-500 italic p-4 text-center border border-dashed border-gray-200 rounded-xl">
+                  No tasks assigned. You're all caught up!
+                </p>
+              ) : (
+                tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="p-4 border border-gray-100 rounded-xl flex justify-between items-center hover:shadow-md transition-shadow"
+                  >
+                    <div>
+                      <h4 className="font-bold text-gray-800">{task.title}</h4>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {task.description
+                          ? task.description.substring(0, 50) + "..."
+                          : "No description"}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        task.status === "Completed"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {task.status || "Pending"}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

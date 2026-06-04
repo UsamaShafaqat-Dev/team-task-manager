@@ -1,6 +1,38 @@
-import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../api/axios";
 
 const Login = () => {
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      // Backend API ko credentials bhejna
+      const response = await api.post("/auth/login", formData);
+
+      // Agar login successful ho gaya toh toast dikhao aur dashboard par jao
+      if (response.status === 200) {
+        toast.success(response.data.message || "Logged in successfully! 🚀");
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      const errorMsg =
+        err.response?.data?.message || "Invalid email or password";
+      setError(errorMsg);
+      toast.error(errorMsg); // Error aane par premium toast
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
@@ -11,14 +43,25 @@ const Login = () => {
           <p className="text-gray-500">Please enter your details to sign in.</p>
         </div>
 
-        <form className="space-y-5">
+        {error && (
+          <div className="bg-red-50 text-red-500 p-3 rounded-lg mb-4 text-sm font-bold text-center">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Email Address
             </label>
             <input
               type="email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+              required
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
               placeholder="Enter your email"
             />
           </div>
@@ -28,12 +71,20 @@ const Login = () => {
             </label>
             <input
               type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+              required
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
               placeholder="••••••••"
             />
           </div>
-          <button className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors shadow-md">
-            Sign In
+          <button
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+          >
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
