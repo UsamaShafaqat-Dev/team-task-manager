@@ -6,15 +6,15 @@ import toast from "react-hot-toast";
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false); // Team Modal State
+  const [newTeamName, setNewTeamName] = useState(""); // Team Name Input State
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
   const navigate = useNavigate();
 
-  // Component mount hote hi data fetch karega
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Promise.all use kiya taake dono API ek sath hit hon aur speed tez ho
         const [teamsRes, tasksRes] = await Promise.all([
           api.get("/teams"),
           api.get("/tasks"),
@@ -23,7 +23,6 @@ const Dashboard = () => {
         setTeams(teamsRes.data);
         setTasks(tasksRes.data);
       } catch (err) {
-        // Agar user authenticated nahi hai toh 401 error aayega
         if (err.response?.status === 401) {
           toast.error("Unauthorized access! Please login first.");
           navigate("/login");
@@ -35,6 +34,28 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, [navigate]);
+
+  // Naya Custom Modal Submit Logic
+  const handleCreateTeamSubmit = async (e) => {
+    e.preventDefault();
+    if (!newTeamName.trim()) {
+      toast.error("Team name is required!");
+      return;
+    }
+
+    try {
+      await api.post("/teams", { name: newTeamName });
+      toast.success("Team created successfully! 🚀");
+
+      const res = await api.get("/teams");
+      setTeams(res.data);
+
+      setIsTeamModalOpen(false); // Modal band karo
+      setNewTeamName(""); // Input clear karo
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to create team");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -85,12 +106,14 @@ const Dashboard = () => {
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">Your Teams</h3>
-              <button className="text-blue-600 text-sm font-bold hover:underline">
+              <button
+                onClick={() => setIsTeamModalOpen(true)}
+                className="text-blue-600 text-sm font-bold hover:underline"
+              >
                 + New Team
               </button>
             </div>
             <div className="space-y-3">
-              {/* Dynamic Teams Fetching */}
               {teams.length === 0 ? (
                 <p className="text-sm text-gray-500 italic p-2 text-center">
                   No teams yet. Create one!
@@ -121,7 +144,6 @@ const Dashboard = () => {
               />
             </div>
             <div className="space-y-4">
-              {/* Dynamic Tasks Fetching */}
               {tasks.length === 0 ? (
                 <p className="text-sm text-gray-500 italic p-4 text-center border border-dashed border-gray-200 rounded-xl">
                   No tasks assigned. You're all caught up!
@@ -141,11 +163,7 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        task.status === "Completed"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${task.status === "Completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
                     >
                       {task.status || "Pending"}
                     </span>
@@ -157,8 +175,70 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Render Modal Component */}
+      {/* Task Modal */}
       <TaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      {/* New Team Custom Modal */}
+      {isTeamModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-extrabold text-gray-800">
+                Create Team
+              </h3>
+              <button
+                onClick={() => setIsTeamModalOpen(false)}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleCreateTeamSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Team Name
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  required
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                  placeholder="e.g., Backend Devs"
+                />
+              </div>
+              <div className="pt-4 flex justify-end gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTeamModalOpen(false)}
+                  className="px-5 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
