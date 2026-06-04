@@ -42,10 +42,12 @@ require("./config/passport")(passport);
 
 // Routes Setup
 const authRoutes = require("./routes/auth");
-const taskRoutes = require("./routes/tasks"); // Task Route yahan add ho gaya hai
+const taskRoutes = require("./routes/tasks"); 
+const teamRoutes = require('./routes/teams');
 
 app.use("/auth", authRoutes);
 app.use("/tasks", taskRoutes);
+app.use('/teams', teamRoutes);
 
 app.get("/", (req, res) => {
   res.send("Team Task Manager API is running securely...");
