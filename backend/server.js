@@ -1,13 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+// PDF Requirement: PostgreSQL Session setup
+const pgSession = require("connect-pg-simple")(session);
 const passport = require("passport");
 require("dotenv").config();
 
 const app = express();
 
-// Connect to Database
-require("./config/db");
+// Database Pool import (Session aur Routes ke liye)
+const pool = require("./config/db");
 
 // Middleware
 app.use(
@@ -19,9 +21,19 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// PDF Strict Rule: Store session in PostgreSQL, fallback to memory in dev
+const sessionStore =
+  process.env.NODE_ENV === "production"
+    ? new pgSession({
+        pool: pool,
+        tableName: "session", // Postgres mein 'session' table use karega
+      })
+    : new session.MemoryStore(); // Dev environment ke liye memory store
+
 // Express Session Setup
 app.use(
   session({
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "super_secret_key_for_assessment",
     resave: false,
     saveUninitialized: false,
@@ -42,12 +54,12 @@ require("./config/passport")(passport);
 
 // Routes Setup
 const authRoutes = require("./routes/auth");
-const taskRoutes = require("./routes/tasks"); 
-const teamRoutes = require('./routes/teams');
+const taskRoutes = require("./routes/tasks");
+const teamRoutes = require("./routes/teams");
 
 app.use("/auth", authRoutes);
 app.use("/tasks", taskRoutes);
-app.use('/teams', teamRoutes);
+app.use("/teams", teamRoutes);
 
 app.get("/", (req, res) => {
   res.send("Team Task Manager API is running securely...");
