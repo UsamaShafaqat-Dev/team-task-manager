@@ -16,3 +16,4 @@ A full-stack MERN application for managing teams and tasks.
 1. Navigate to the frontend directory: `cd frontend`
 2. Install dependencies: `npm install`
 3. Start the Vite development server: `npm run dev`
+Enjoy managing your tasks!
