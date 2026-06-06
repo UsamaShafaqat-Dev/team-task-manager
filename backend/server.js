@@ -11,10 +11,16 @@ const app = express();
 // Database Pool import (Session aur Routes ke liye)
 const pool = require("./config/db");
 
-// Middleware
+// 1. TRUST PROXY SETUP (Render par secure cookies ke liye lazmi hai)
+app.set("trust proxy", 1);
+
+// 2. CORS UPDATE (Local aur Vercel dono links allow kar diye hain)
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://team-task-manager-zeta-pink.vercel.app",
+    ],
     credentials: true,
   }),
 );
@@ -30,7 +36,7 @@ const sessionStore =
       })
     : new session.MemoryStore(); // Dev environment ke liye memory store
 
-// Express Session Setup
+// 3. EXPRESS SESSION SETUP (Cross-domain cookies fix)
 app.use(
   session({
     store: sessionStore,
@@ -39,7 +45,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // Production mein true
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Vercel aur Render connect karne ke liye
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   }),
